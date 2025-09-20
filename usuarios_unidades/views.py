@@ -14,7 +14,11 @@ User = get_user_model()
 # CU3 – Gestión de usuarios
 
 class UserListCreateView(generics.ListCreateAPIView):
-    queryset = User.objects.all()
+    def get_queryset(self):
+        user = self.request.user
+        if hasattr(user, 'role') and user.role == 'administrador':
+            return User.objects.all()
+        return User.objects.filter(id=user.id)
     serializer_class = UsuarioSerializer
 
 class UserRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
@@ -33,14 +37,14 @@ class UserRoleUpdateView(generics.UpdateAPIView):
     serializer_class = UsuarioRoleSerializer
 
     def update(self, request, *args, **kwargs):
+        # Solo administradores pueden modificar roles
+        if not hasattr(request.user, "role") or request.user.role != "administrador":
+            return Response({"error": "Solo un administrador puede modificar roles."}, status=403)
         data = request.data
         role = data.get("role", "").lower()
         valid_roles = ['residente', 'administrador', 'seguridad', 'empleado']
-
         if role not in valid_roles:
-            return Response({"error": f"Rol inválido. Debe ser uno de {valid_roles}"},
-                            status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({"error": f"Rol inválido. Debe ser uno de {valid_roles}"}, status=400)
         return super().update(request, *args, **kwargs)
 
 # CU5 – Gestión de residentes e inquilinos

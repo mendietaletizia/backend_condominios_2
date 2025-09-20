@@ -10,7 +10,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'role', 'email', 'password']
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
+        role = validated_data.pop('role', None)
+        user = User.objects.create_user(
+            password=password,
+            role=role,
+            **validated_data
+        )
+        user.is_active = True
         user.save()
         return user
